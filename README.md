@@ -27,3 +27,25 @@ Desktop Agent(Windows only): C# (.NET 8). Реальная блокировка 
 Специально для тестов созданы дополнительные аккаунты(для проверки механики рейдов, таблицы лидеров, кланов и т.д)
 
 Зависимости Golang описаны в server/go.mod, Flutter -- в client/pubspec.yaml т.к Python в итоге не используется
+
+# Скриншоты из игры
+
+### World Map
+Окно карты с выбором локации или города
+
+![World Map](screenshots/map.png)
+
+### Expeditions
+Окно вылазки, в котором пишется время до конца, а также награда за каждую пройденную минуту
+
+![Expedition](screenshots/expedition.png)
+
+### Forge
+Возможность крафтов и переработки ресурсов и экипировки
+
+![Forge](screenshots/forge.png)
+
+### Character Profile
+Окно статистики персонажа
+
+![Profile](screenshots/profile.png)
