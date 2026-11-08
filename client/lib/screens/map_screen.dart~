@@ -1,0 +1,331 @@
+import 'package:flutter/material.dart';
+// Импортируй сюда свой экран таймера, если он нужен
+// import 'expedition_screen.dart'; 
+
+class LocationSelectScreen extends StatefulWidget {
+  const LocationSelectScreen({super.key});
+
+  @override
+  State<LocationSelectScreen> createState() => _LocationSelectScreenState();
+}
+
+class _LocationSelectScreenState extends State<LocationSelectScreen> {
+  int _selectedIndex = 0;
+
+  // Генерация локаций под уровни 1-100
+  final List<Map<String, dynamic>> _locations = List.generate(10, (index) {
+    int minLvl = (index * 10) + 1;
+    int maxLvl = (index + 1) * 10;
+    
+    // Названия локаций (можешь поменять под свой лор)
+    final names = [
+      'Донецк', 'Луганск', 'Харьков', 
+      'Одесса', 'Запорожье', 'Днепр',
+      'Проклятый Харьков', 'Львов', 'Киев', 'Малая токмачка'
+    ];
+    
+    return {
+      'name': names[index],
+      'level': 'Уровни $minLvl - $maxLvl',
+      'number': index + 1,
+    };
+  });
+
+  // Цветовая палитра
+  final Color bgDark = const Color(0xFF1E1E1E);      // Угольный
+  final Color bgPanel = const Color(0xFF2A2826);     // Темно-коричневый
+  final Color parchment = const Color(0xFFD4C4A8);   // Песочный (текст)
+  final Color accentRed = const Color(0xFF8B0000);   // Темно-красный (акцент)
+  final Color borderGold = const Color(0xFF8B7D6B);  // Тусклое золото
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      backgroundColor: bgDark,
+      body: Row(
+        children: [
+          // лево (картинка и радар)
+          Expanded(
+            flex: 5,
+            child: Stack(
+              children: [
+                // 1. фон
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/backgrounds/bandera.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                Positioned.fill(
+                  child: Container(color: Colors.black.withOpacity(0.4)),
+                ),
+                
+                // 2. радар
+                Positioned(
+                  top: 40,
+                  left: 40,
+                  child: _buildMiniMap(),
+                ),
+
+                // 3. заголовок
+                Positioned(
+                  bottom: 40,
+                  left: 40,
+                  right: 40,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ВЫБОР ЛОКАЦИИ',
+                        style: TextStyle(
+                          fontFamily: 'Neucha',
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: parchment,
+                          letterSpacing: 2,
+                          shadows: const [
+                            Shadow(color: Colors.black, blurRadius: 10, offset: Offset(2, 2)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 100,
+                        height: 3,
+                        color: accentRed,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+
+          // право(локи)
+          Expanded(
+            flex: 4,
+            child: Container(
+              decoration: BoxDecoration(
+                color: bgPanel,
+                border: Border(left: BorderSide(color: borderGold.withOpacity(0.3), width: 2)),
+              ),
+              child: Column(
+                children: [
+
+                  Padding(
+                    padding: const EdgeInsets.all(30.0),
+                    child: Text(
+                      'КАРТА МИРА',
+                      style: TextStyle(
+                        fontFamily: 'Neucha',
+                        fontSize: 24,
+                        color: borderGold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                  ),
+                  
+                  // список карт
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      itemCount: _locations.length,
+                      itemBuilder: (context, index) {
+                        return _buildLocationButton(index);
+                      },
+                    ),
+                  ),
+                  
+                  // взад
+                  Padding(
+                    padding: const EdgeInsets.all(30.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderGold.withOpacity(0.5)),
+                          shape: const BeveledRectangleBorder(), // Срезанные углы
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'ОТСТУПИТЬ',
+                          style: TextStyle(
+                            fontFamily: 'Neucha',
+                            fontSize: 18,
+                            color: parchment.withOpacity(0.7),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildLocationButton(int index) {
+    final isSelected = _selectedIndex == index;
+    final loc = _locations[index];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: InkWell(
+        onTap: () {
+          setState(() => _selectedIndex = index);
+          // тут короче будешь на экспедицию вести (вроде должно сработать)
+          // Navigator.push(context, MaterialPageRoute(builder: (context) => ()));
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 70,
+          decoration: BoxDecoration(
+            color: isSelected ? accentRed.withOpacity(0.15) : Colors.transparent,
+            border: Border.all(
+              color: isSelected ? accentRed : borderGold.withOpacity(0.3),
+              width: isSelected ? 2 : 1,
+            ),
+  
+            shape: BoxShape.rectangle, 
+          ),
+          child: Row(
+            children: [
+   
+              Container(
+                width: 40,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: isSelected ? accentRed : borderGold.withOpacity(0.1),
+                  border: Border(right: BorderSide(color: isSelected ? accentRed : borderGold.withOpacity(0.3))),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${loc['number']}',
+                  style: TextStyle(
+                    fontFamily: 'Neucha',
+                    fontSize: 24,
+                    color: isSelected ? Colors.white : parchment.withOpacity(0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // текст
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc['name'],
+                      style: TextStyle(
+                        fontFamily: 'Neucha',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? parchment : parchment.withOpacity(0.6),
+                      ),
+                    ),
+                    Text(
+                      loc['level'],
+                      style: TextStyle(
+                        fontFamily: 'Neucha',
+                        fontSize: 14,
+                        color: isSelected ? borderGold : parchment.withOpacity(0.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniMap() {
+    return Container(
+      width: 180,
+      height: 180,
+      decoration: BoxDecoration(
+        color: bgDark.withOpacity(0.8),
+        shape: BoxShape.circle,
+        border: Border.all(color: borderGold.withOpacity(0.5), width: 2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // декор
+          CustomPaint(
+            size: const Size(180, 180),
+            painter: MapLinesPainter(color: borderGold.withOpacity(0.2)),
+          ),
+      
+          ...List.generate(_locations.length, (index) {
+            final angle = (index / _locations.length) * 3.14159 * 2 - 1.57; // -1.57 чтобы начать сверху
+            final radius = 60.0;
+            final x = 90 + radius * (index % 2 == 0 ? 1 : -1) * (angle.abs() % 1); // Немного хаоса
+            final y = 90 + radius * (index % 2 == 0 ? 1 : -1) * (angle.abs() % 1);
+
+            return Positioned(
+              left: 90 + (radius * (index / 10)) * (index % 2 == 0 ? 1 : -1) - 5, 
+              top: 90 + (radius * (index / 10)) * (index % 3 == 0 ? 1 : -1) - 5,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: _selectedIndex == index ? accentRed : borderGold,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+              ),
+            );
+          }),
+          // компас
+          Icon(Icons.explore_outlined, color: borderGold.withOpacity(0.5), size: 40),
+        ],
+      ),
+    );
+  }
+}
+
+// мини мапа пейнтер
+class MapLinesPainter extends CustomPainter {
+  final Color color;
+  MapLinesPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 20;
+
+    // сетка радара
+    canvas.drawCircle(center, radius, paint);
+    canvas.drawCircle(center, radius * 0.6, paint);
+    canvas.drawCircle(center, radius * 0.3, paint);
+
+ 
+    canvas.drawLine(Offset(center.dx, 20), Offset(center.dx, size.height - 20), paint);
+    canvas.drawLine(Offset(20, center.dy), Offset(size.width - 20, center.dy), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

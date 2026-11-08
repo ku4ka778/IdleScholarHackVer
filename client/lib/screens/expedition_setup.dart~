@@ -1,0 +1,91 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+
+class ExpeditionSetupScreen extends StatefulWidget {
+  final int locationIndex;
+
+  const ExpeditionSetupScreen({super.key, required this.locationIndex});
+
+  @override
+  State<ExpeditionSetupScreen> createState() => _ExpeditionSetupScreenState();
+}
+
+class _ExpeditionSetupScreenState extends State<ExpeditionSetupScreen> {
+  final _domainsController = TextEditingController(text: 'google.com, github.com');
+  final _appsController = TextEditingController(text: 'emacs.exe, discord.exe');
+  Process? _agentProcess;
+
+  @override
+  void dispose() {
+    _domainsController.dispose();
+    _appsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _startExpedition() async {
+    final domains = _domainsController.text;
+    final apps = _appsController.text;
+    final duration = 30; // В минутах
+
+    // В будущем тут будет вызов Go-сервера (StartExpedition)
+    // А пока просто запускаем C#-агент для проверки
+    final agentPath = '${Directory.current.path}/agent/publish/Agent.exe';
+
+    try {
+      _agentProcess = await Process.start(
+        agentPath,
+        [
+          '--domains', domains,
+          '--apps', apps,
+          '--duration', duration.toString(),
+        ],
+        workingDirectory: Directory.current.path,
+        runInShell: true,
+      );
+
+      _agentProcess!.stdout.transform(SystemEncoding().decoder).listen((data) {
+        debugPrint('AGENT: $data');
+      });
+      _agentProcess!.stderr.transform(SystemEncoding().decoder).listen((data) {
+        debugPrint('AGENT ERROR: $data');
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Экспедиция (Локация ${widget.locationIndex}) запущена! Агент работает.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка запуска агента: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Экспедиция: Локация ${widget.locationIndex}')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Разрешенные домены (через запятую):'),
+            TextField(controller: _domainsController),
+            const SizedBox(height: 16),
+            Text('Разрешенные процессы (через запятую):'),
+            TextField(controller: _appsController),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: _startExpedition,
+              child: const Text('НАЧАТЬ ЭКСПЕДИЦИЮ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

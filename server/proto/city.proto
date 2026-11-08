@@ -1,0 +1,448 @@
+syntax = "proto3";
+
+package city;
+
+option go_package = "IdleScholar_BD/gen/city;citypb";
+
+service CityService {
+  rpc GetCity (GetCityRequest) returns (GetCityResponse);
+	rpc UpgradeBuilding (UpgradeBuildingRequest) returns (UpgradeBuildingResponse);
+	rpc GetFoodRecipes (GetFoodRecipesRequest) returns (GetFoodRecipesResponse);
+  rpc BuyFood (BuyFoodRequest) returns (BuyFoodResponse);
+	rpc GetPotionRecipes (GetPotionRecipesRequest) returns (GetPotionRecipesResponse);
+  rpc DrinkPotion (DrinkPotionRequest) returns (DrinkPotionResponse);
+  rpc StartBarracks (StartBarracksRequest) returns (StartBarracksResponse);
+  rpc ClaimBarracks (ClaimBarracksRequest) returns (ClaimBarracksResponse);
+  rpc GetRaidLogs (GetRaidLogsRequest) returns (GetRaidLogsResponse);
+  rpc GetLeaderboard (GetLeaderboardRequest) returns (GetLeaderboardResponse);
+  rpc SearchPlayer (SearchPlayerRequest) returns (SearchPlayerResponse);
+  rpc AddFriend (AddFriendRequest) returns (AddFriendResponse);
+  rpc GetFriends (GetFriendsRequest) returns (GetFriendsResponse);
+  rpc AcceptFriend (AcceptFriendRequest) returns (AcceptFriendResponse);  
+  rpc CreateClan (CreateClanRequest) returns (CreateClanResponse);
+  rpc JoinClan (JoinClanRequest) returns (JoinClanResponse);
+  rpc GetClanInfo (GetClanInfoRequest) returns (GetClanInfoResponse);
+  rpc SearchClan (SearchClanRequest) returns (SearchClanResponse);
+  rpc GetClanLeaderboard (GetClanLeaderboardRequest) returns (GetClanLeaderboardResponse);
+	rpc CreateCoopGroup (CreateCoopGroupRequest) returns (CreateCoopGroupResponse);
+  rpc JoinCoopGroup (JoinCoopGroupRequest) returns (JoinCoopGroupResponse);
+  rpc LeaveCoopGroup (LeaveCoopGroupRequest) returns (LeaveCoopGroupResponse);
+  rpc GetCoopGroup (GetCoopGroupRequest) returns (GetCoopGroupResponse);
+  rpc SetReady (SetReadyRequest) returns (SetReadyResponse);
+  rpc DepositClanGold (DepositClanGoldRequest) returns (DepositClanGoldResponse);
+  rpc BuyClanBuff (BuyClanBuffRequest) returns (BuyClanBuffResponse);
+  rpc GetPlayerProfile (GetPlayerProfileRequest) returns (GetPlayerProfileResponse);
+	rpc FindRaidTarget (FindRaidTargetRequest) returns (FindRaidTargetResponse);
+  rpc AttackPlayer (AttackPlayerRequest) returns (AttackPlayerResponse);
+  rpc GetAchievements (GetAchievementsRequest) returns (GetAchievementsResponse);
+  rpc CheatGiveAll (CheatGiveAllRequest) returns (CheatGiveAllResponse);
+}
+
+message GetCityRequest {
+  int32 character_id = 1;
+}
+
+message GetCityResponse {
+  bool success = 1;
+  string message = 2;
+  int32 city_id = 3;
+  int32 level = 4;
+  repeated ResourceEntry resources = 5;
+  map<string, int32> upgrades = 6;
+}
+
+message ResourceEntry {
+  string resource_type = 1;
+  int64 amount = 2;
+}
+
+message UpgradeBuildingRequest {
+  int32 character_id = 1;
+  string upgrade_code = 2; 
+}
+
+message UpgradeBuildingResponse {
+  bool success = 1;
+  string message = 2;
+  int32 new_level = 3;
+}
+
+message GetFoodRecipesRequest {
+  int32 character_id = 1;
+}
+
+message GetFoodRecipesResponse {
+  bool success = 1;
+  repeated FoodRecipe recipes = 2;
+  int32 active_food_gold_pct = 3;
+  int32 active_food_exp_pct = 4;
+  int32 active_food_luck_pct = 5;
+}
+
+message FoodRecipe {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  string description = 4;
+  string cost_resource = 5;
+  int32 cost_amount = 6;
+  int32 buff_gold_pct = 7;
+  int32 buff_exp_pct = 8;
+  int32 buff_luck_pct = 9;
+	int32 tier = 10;
+}
+
+message BuyFoodRequest {
+  int32 character_id = 1;
+  string food_code = 2;
+}
+
+message BuyFoodResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetPotionRecipesRequest {
+  int32 character_id = 1;
+}
+
+message GetPotionRecipesResponse {
+  bool success = 1;
+  repeated PotionRecipe recipes = 2;
+}
+
+message PotionRecipe {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  string description = 4;
+  int32 tier = 5;
+  string cost_resource = 6;
+  int32 cost_amount = 7;
+  int32 cost_gold = 8;
+  int32 reward_gold = 9;
+  int32 reward_exp = 10;
+  string reward_resource = 11;
+  int32 reward_resource_amount = 12;
+}
+
+message DrinkPotionRequest {
+  int32 character_id = 1;
+  string potion_code = 2;
+}
+
+message DrinkPotionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message StartBarracksRequest {
+  int32 character_id = 1;
+}
+
+message StartBarracksResponse {
+  bool success = 1;
+  string message = 2;
+  int64 end_time = 3;
+}
+
+message ClaimBarracksRequest {
+  int32 character_id = 1;
+}
+
+message ClaimBarracksResponse {
+  bool success = 1;
+  string message = 2;
+  int64 gold_earned = 3;
+}
+
+message GetRaidLogsRequest {
+  int32 character_id = 1;
+}
+
+message RaidLog {
+  int32 id = 1;
+  int32 raid_power = 2;
+  int32 wall_defense = 3;
+  int64 resources_lost = 4;
+  string created_at = 5;
+}
+
+message GetRaidLogsResponse {
+  bool success = 1;
+  repeated RaidLog logs = 2;
+}
+
+message GetLeaderboardRequest {
+	string sort_by = 1;
+}
+
+message GetLeaderboardResponse {
+  bool success = 1;
+  repeated LeaderboardEntry entries = 2;
+}
+
+message LeaderboardEntry {
+  int32 rank = 1;
+  string name = 2;
+  int32 level = 3;
+  int64 total_time = 4;
+  string class_type = 5;
+  int32 character_id = 6;
+}
+
+message SearchPlayerRequest {
+  string name = 1;
+}
+message SearchPlayerResponse {
+  bool success = 1;
+  int32 character_id = 2;
+  string name = 3;
+  int32 level = 4;
+  string class_type = 5;
+  int32 clan_id = 6;
+}
+
+message AddFriendRequest {
+  int32 character_id = 1;
+  int32 target_id = 2;
+}
+message AddFriendResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message FriendEntry {
+  int32 character_id = 1;
+  string name = 2;
+  int32 level = 3;
+  string status = 4;
+}
+
+message GetFriendsRequest {
+  int32 character_id = 1;
+}
+message GetFriendsResponse {
+  bool success = 1;
+  repeated FriendEntry friends = 2;
+}
+
+message AcceptFriendRequest {
+  int32 character_id = 1;
+  int32 requester_id = 2;
+}
+message AcceptFriendResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CreateClanRequest {
+  int32 character_id = 1;
+  string clan_name = 2;
+}
+message CreateClanResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message JoinClanRequest {
+  int32 character_id = 1;
+  int32 clan_id = 2;
+}
+message JoinClanResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetClanInfoRequest {
+  int32 clan_id = 1;
+}
+message GetClanInfoResponse {
+  bool success = 1;
+  string name = 2;
+  string leader_name = 3;
+  repeated FriendEntry members = 4;
+  int64 bank_gold = 5;
+  string active_buff = 6;
+  int64 buff_expires_at = 7;
+}
+
+message SearchClanRequest {
+  string name = 1;
+}
+
+message SearchClanResponse {
+  bool success = 1;
+  int32 clan_id = 2;
+  string name = 3;
+  string leader_name = 4;
+  int32 member_count = 5;
+  int64 total_levels = 6;
+}
+
+message GetClanLeaderboardRequest {}
+
+message ClanEntry {
+  int32 clan_id = 1;
+  string name = 2;
+  int32 member_count = 3;
+  int64 total_levels = 4;
+}
+
+message GetClanLeaderboardResponse {
+  bool success = 1;
+  repeated ClanEntry clans = 2;
+}
+
+message CreateCoopGroupRequest {
+  int32 character_id = 1;
+}
+message CreateCoopGroupResponse {
+  bool success = 1;
+  string message = 2;
+  int32 group_id = 3;
+}
+
+message JoinCoopGroupRequest {
+  int32 character_id = 1;
+  int32 leader_id = 2;
+}
+message JoinCoopGroupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LeaveCoopGroupRequest {
+  int32 character_id = 1;
+}
+message LeaveCoopGroupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CoopMember {
+  int32 character_id = 1;
+  string name = 2;
+  int32 level = 3;
+  bool is_ready = 4;
+}
+
+message GetCoopGroupRequest {
+  int32 character_id = 1;
+}
+message GetCoopGroupResponse {
+  bool success = 1;
+  bool in_group = 2;
+  int32 group_id = 3;
+  int32 leader_id = 4;
+  repeated CoopMember members = 5;
+}
+
+message SetReadyRequest {
+  int32 character_id = 1;
+  bool is_ready = 2;
+}
+message SetReadyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DepositClanGoldRequest {
+  int32 character_id = 1;
+  int64 amount = 2;
+}
+
+message DepositClanGoldResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message BuyClanBuffRequest {
+  int32 character_id = 1;
+  string buff_code = 2;
+}
+
+message BuyClanBuffResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetPlayerProfileRequest {
+  int32 character_id = 1;
+}
+
+message GetPlayerProfileResponse {
+  bool success = 1;
+  int32 character_id = 2;
+  string name = 3;
+  int32 level = 4;
+  string class_type = 5;
+  int32 clan_id = 6;
+  string clan_name = 7;
+  int32 strength = 8;
+  int32 dexterity = 9;
+  int32 intelligence = 10;
+  int32 luck = 11;
+  repeated PlayerEquipItem equipped_items = 12;
+}
+
+message PlayerEquipItem {
+  string slot = 1;
+  string name = 2;
+  int32 attack = 3;
+  int32 defense = 4;
+  int32 luck = 5;
+}
+
+message FindRaidTargetRequest {
+  int32 character_id = 1;
+}
+
+message FindRaidTargetResponse {
+  bool success = 1;
+  int32 target_id = 2;
+  string target_name = 3;
+  int32 target_level = 4;
+  int32 target_wall_level = 5;
+  int64 target_gold = 6;
+}
+
+message AttackPlayerRequest {
+  int32 character_id = 1;
+  int32 target_id = 2;
+}
+
+message AttackPlayerResponse {
+  bool success = 1;
+  string message = 2;
+  bool victory = 3;
+  int64 gold_stolen = 4;
+  int32 my_wall_level = 5;
+  int32 enemy_wall_level = 6;
+}
+
+message GetAchievementsRequest { int32 character_id = 1; }
+
+message GetAchievementsResponse {
+  bool success = 1;
+  repeated AchievementEntry achievements = 2;
+}
+
+message AchievementEntry {
+  string code = 1;
+  string name = 2;
+  string description = 3;
+  int32 tier = 4;
+  bool is_completed = 5;
+}
+
+message CheatGiveAllRequest {
+  int32 character_id = 1;
+  int32 level = 2;
+  int64 gold = 3;
+}
+
+message CheatGiveAllResponse {
+  bool success = 1;
+  string message = 2;
+}

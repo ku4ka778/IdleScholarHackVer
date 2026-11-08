@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import '../gen/craft.pbgrpc.dart';
+import '../services/craft_client.dart';
+import '../services/session.dart';
+
+class ForgeScreen extends StatefulWidget {
+  const ForgeScreen({super.key});
+
+  @override
+  State<ForgeScreen> createState() => _ForgeScreenState();
+}
+
+class _ForgeScreenState extends State<ForgeScreen> {
+  final _client = CraftClient();
+  List<Recipe> _recipes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    setState(() => _loading = true);
+    try {
+      await _client.connect();
+      final resp = await _client.getRecipes(charId);
+      if (resp.success) {
+        setState(() {
+          _recipes = resp.recipes;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading recipes: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _craft(Recipe recipe) async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    try {
+      final resp = await _client.craftItem(charId, recipe.id);
+      if (resp.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Crafted: ${recipe.resultName}')),
+        );
+        _load();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(resp.message)),
+        );
+      }
+    } catch (e) {
+      debugPrint('Craft error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Кузня')),
+      body: _loading 
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _recipes.length,
+              itemBuilder: (context, index) {
+                final r = _recipes[index];
+                
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${r.resultName} x${r.resultQuantity}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        
+                        if (r.resultSlot != 'material')
+                          Text(
+                            'ATK: ${r.resultAttack} | DEF: ${r.resultDefense} | LUCK: ${r.resultLuck}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        const SizedBox(height: 8),
+                        
+                        ...r.ingredients.map((ing) => Text(
+                          '${ing.resourceType}: ${ing.available} / ${ing.amount}',
+                          style: TextStyle(
+                            color: ing.available >= ing.amount ? Colors.green : Colors.red,
+                          ),
+                        )),
+                        const SizedBox(height: 8),
+                        
+                        ElevatedButton(
+                          onPressed: r.canCraft ? () => _craft(r) : null,
+                          child: const Text('СОЗДАТЬ'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}

@@ -1,0 +1,93 @@
+import 'package:flutter/material.dart';
+import '../services/api_client.dart';
+import '../services/session.dart';
+import '../services/localization.dart';
+
+class PostOfficeScreen extends StatefulWidget {
+  const PostOfficeScreen({super.key});
+
+  @override
+  State<PostOfficeScreen> createState() => _PostOfficeScreenState();
+}
+
+class _PostOfficeScreenState extends State<PostOfficeScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, dynamic>> _leaders = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        _load(_tabController.index == 0 ? 'level' : 'time');
+      }
+    });
+    _load('level');
+  }
+
+  Future<void> _load(String sortBy) async {
+    setState(() => _loading = true);
+    try {
+      final resp = await apiClient.getLeaderboard(sortBy);
+      if (resp['success'] == true) {
+        setState(() {
+          _leaders = (resp['entries'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Leaderboard error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Почтовый двор'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Top by lvl'),
+            Tab(text: 'Top by time'),
+          ],
+        ),
+      ),
+      body: _loading 
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _leaders.length,
+              itemBuilder: (context, index) {
+                final entry = _leaders[index];
+                final isMe = entry['name'] == Session.characterName;
+
+                return Card(
+                  color: isMe ? Colors.amber.withOpacity(0.2) : null,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isMe ? Colors.amber : Colors.grey,
+                      child: Text('${entry['rank']}', style: const TextStyle(color: Colors.white)),
+                    ),
+                    title: Text(entry['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Класс: ${entry['class_type']}'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Уровень: ${entry['level']}', style: const TextStyle(fontSize: 16)),
+                        if (_tabController.index == 1)
+                          Text('Время: ${(entry['total_time'] as num).toInt() ~/ 60} ч', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}

@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package character;
+
+option go_package = "IdleScholar_BD/gen/character;characterpb";
+
+service CharacterService {
+  rpc CreateCharacter (CreateCharacterRequest) returns (AuthResponse);
+  rpc GetCharacterById (CharacterRequest) returns (CharacterResponse);
+  rpc GetTalents (GetTalentsRequest) returns (GetTalentsResponse);
+  rpc UpgradeTalent (UpgradeTalentRequest) returns (UpgradeTalentResponse);
+  rpc CompleteTutorial (CompleteTutorialRequest) returns (CompleteTutorialResponse);
+}
+
+message CreateCharacterRequest {
+  int32 account_id = 1;
+  string character_name = 2;
+  string class_type = 3;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string message = 2;
+  int32 account_id = 3;
+  int32 character_id = 4;
+  string username = 5;
+  string character_name = 6;
+}
+
+message CharacterRequest {
+  int32 id = 1;
+}
+
+message CharacterResponse {
+  int32 id = 1;
+  string name = 2;
+  int32 level = 3;
+  string class_type = 4;
+  int64 experience = 5;
+  int32 strength = 6;
+  int32 dexterity = 7;
+  int32 intelligence = 8;
+  int32 luck = 9;
+  int32 talentpoint = 10;
+	int64 gold = 11;
+	int64 barracks_end = 12;
+  int32 clan_id = 13;
+  int32 total_crafts = 14;
+  int32 total_salvaged = 15;
+  int32 total_raids_survived = 16;
+  int32 total_echo_wins = 17;
+  int32 total_blizzards_survived = 18;
+  int32 total_resonance_pos = 19;
+  int32 pvp_wins = 20;
+  int32 pvp_losses = 21;
+  int64 total_focus_minutes = 22;
+  int64 total_gold_earned = 23;
+  int64 total_loot_collected = 24;
+  int32 total_expeditions = 25;
+	int32 tutorial_step = 26;
+}
+
+message GetTalentsRequest {
+  int32 character_id = 1;
+}
+
+message GetTalentsResponse {
+  bool success = 1;
+  int32 talent_points = 2;
+  map<string, int32> talents = 3;
+}
+
+message UpgradeTalentRequest {
+  int32 character_id = 1;
+  string talent_id = 2;
+}
+
+message UpgradeTalentResponse {
+  bool success = 1;
+  string message = 2;
+  int32 new_level = 3;
+}
+
+message CompleteTutorialRequest {
+  int32 character_id = 1;
+}
+
+message CompleteTutorialResponse {
+  bool success = 1;
+}

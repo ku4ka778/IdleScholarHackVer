@@ -1,0 +1,141 @@
+import 'package:flutter/material.dart';
+import '../services/api_client.dart';
+import '../services/session.dart';
+
+class WallScreen extends StatefulWidget {
+  const WallScreen({super.key});
+
+  @override
+  State<WallScreen> createState() => _WallScreenState();
+}
+
+class _WallScreenState extends State<WallScreen> {
+  List<Map<String, dynamic>> _logs = [];
+  int _wallLevel = 0;
+  Map<String, int> _resources = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final cityResp = await apiClient.getCity(charId);
+      if (cityResp['success'] == true) {
+        final upgrades = cityResp['upgrades'] as Map<String, dynamic>? ?? {};
+        _wallLevel = (upgrades['wall'] as num?)?.toInt() ?? 0;
+        
+        final rawRes = (cityResp['resources'] as List<dynamic>?) ?? [];
+        _resources = { for (var r in rawRes) r['resource_type'] : (r['amount'] as num).toInt() };
+      }
+
+      final logsResp = await apiClient.getRaidLogs(charId);
+      if (logsResp['success'] == true) {
+        _logs = (logsResp['logs'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+      }
+
+      setState(() => _loading = false);
+    } catch (e) {
+      debugPrint('Wall load error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _upgrade() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    try {
+      final resp = await apiClient.upgradeBuilding(charId, 'wall');
+      if (resp['success'] == true) {
+        _load();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp['message'] ?? 'Error')));
+      }
+    } catch (e) {
+      debugPrint('Upgrade error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    final nextLevel = _wallLevel + 1;
+    final woodCost = nextLevel * 50;
+    final stoneCost = nextLevel * 30;
+
+    final haveTwig = _resources['twig'] ?? 0;
+    final haveStone = _resources['stone'] ?? 0;
+    final canAfford = haveTwig >= woodCost && haveStone >= stoneCost;
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Стена (Уровень $_wallLevel)')),
+      body: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Защита города', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Текущая защита: ${_wallLevel * 15}'),
+                  Text('Защита следующего уровня: ${nextLevel * 15}'),
+                  const SizedBox(height: 8),
+                  Text('Стоимость: $woodCost веточек, $stoneCost камней', 
+                    style: TextStyle(color: canAfford ? Colors.green : Colors.red)),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: canAfford ? _upgrade : null,
+                    child: const Text('УЛУЧШИТЬ СТЕНУ'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text('Последние нападения:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          
+          Expanded(
+            child: _logs.isEmpty
+                ? const Center(child: Text('Нападений еще не было'))
+                : ListView.builder(
+                    itemCount: _logs.length,
+                    itemBuilder: (context, index) {
+                      final log = _logs[index];
+                      final lost = (log['resources_lost'] as num).toInt();
+                      final raidPower = log['raid_power'];
+                      final wallDefense = log['wall_defense'];
+                      
+                      final isDefended = lost == 0;
+                      
+                      return ListTile(
+                        leading: Icon(
+                          isDefended ? Icons.shield : Icons.warning,
+                          color: isDefended ? Colors.green : Colors.red,
+                        ),
+                        title: Text(isDefended ? 'Атака отбита!' : 'Город разграблен!'),
+                        subtitle: Text('Сила рейда: $raidPower | Защита: $wallDefense\n${isDefended ? "Потерь нет" : "Потеряно ресурсов: $lost"}'),
+                        isThreeLine: true,
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}

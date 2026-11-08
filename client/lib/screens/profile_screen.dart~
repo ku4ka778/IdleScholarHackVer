@@ -1,0 +1,163 @@
+import 'package:flutter/material.dart';
+import '../gen/character.pbgrpc.dart';
+import '../services/character_client.dart';
+import '../services/session.dart';
+import 'talents_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _client = CharacterClient();
+  CharacterResponse? _character;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    setState(() => _loading = true);
+    try {
+      await _client.connect();
+      final resp = await _client.getCharacterById(charId);
+      if (resp.id != 0) {
+        setState(() {
+          _character = resp;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Profile load error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  int _getExpForNextLevel(int currentLevel) {
+    return currentLevel * 200; 
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_character == null) {
+      return const Scaffold(body: Center(child: Text('Ошибка загрузки профиля')));
+    }
+
+    final char = _character!;
+    final requiredExp = _getExpForNextLevel(char.level);
+    final progress = (char.experience / requiredExp).clamp(0.0, 1.0);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Профиль')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Name, class 
+            Text(
+              char.name,
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Класс: ${char.classType}',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+
+            // Lvl, exp
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Уровень: ${char.level}', style: const TextStyle(fontSize: 20)),
+                Text('${char.experience.toInt()} / $requiredExp XP', style: const TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 12,
+              backgroundColor: Colors.grey[300],
+              color: Colors.blueAccent,
+            ),
+            const SizedBox(height: 24),
+
+            // Golds
+            Row(
+              children: [
+                const Icon(Icons.monetization_on, color: Colors.amber, size: 32),
+                const SizedBox(width: 8),
+                Text('${char.gold} Золота', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            // Base stars
+            const Text('Характеристики:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn('Сила', char.strength),
+                _buildStatColumn('Ловкость', char.dexterity),
+                _buildStatColumn('Интеллект', char.intelligence),
+                _buildStatColumn('Удача', char.luck),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Очки талантов
+            if (char.talentpoint > 0)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  border: Border.all(color: Colors.green),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Свободных очков навыков: ${char.talentpoint}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TalentsScreen()));
+                      },
+                      child: const Text('РАСПРЕДЕЛИТЬ'),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, int value) {
+    return Column(
+      children: [
+        Text('$value', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+}

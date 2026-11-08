@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import '../services/api_client.dart';
+import '../services/session.dart';
+
+class PlayerProfileScreen extends StatefulWidget {
+  final int characterId;
+  final String initialName; 
+
+  const PlayerProfileScreen({super.key, required this.characterId, this.initialName = 'Загрузка...'});
+
+  @override
+  State<PlayerProfileScreen> createState() => _PlayerProfileScreenState();
+}
+
+class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
+  Map<String, dynamic>? _profile;
+  bool _loading = true;
+  bool _isFriendRequestSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final resp = await apiClient.getPlayerProfile(widget.characterId);
+      if (resp['success'] == true) {
+        setState(() {
+          _profile = resp;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Profile load error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _sendFriendRequest() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    try {
+      final resp = await apiClient.addFriend(charId, widget.characterId);
+      if (resp['success'] == true) {
+        setState(() => _isFriendRequestSent = true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Заявка отправлена!')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp['message'] ?? 'Ошибка')));
+      }
+    } catch (e) {
+      debugPrint('Friend request error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_profile == null) return const Scaffold(body: Center(child: Text('Игрок не найден')));
+
+    final name = _profile!['name'] as String? ?? 'Unknown';
+    final level = _profile!['level'] as int? ?? 1;
+    final classType = _profile!['class_type'] as String? ?? 'warrior';
+    final clanName = _profile!['clan_name'] as String? ?? 'Нет клана';
+    
+    final isMe = widget.characterId == Session.characterId;
+
+    String className = 'Неизвестно';
+    Color classColor = Colors.grey;
+    if (classType == 'warrior') { className = 'Рыцарь'; classColor = Colors.red; }
+    if (classType == 'mage') { className = 'Маг'; classColor = Colors.blue; }
+    if (classType == 'bard') { className = 'Бард'; classColor = Colors.purple; }
+    if (classType == 'alchemist') { className = 'Алхимик'; classColor = Colors.amber; }
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Профиль: $name')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: classColor.withOpacity(0.2),
+              child: Icon(Icons.person, size: 60, color: classColor),
+            ),
+            const SizedBox(height: 16),
+            
+            Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            Text(className, style: TextStyle(fontSize: 18, color: classColor, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.military_tech, color: Colors.amber),
+                title: const Text('Уровень'),
+                trailing: Text('$level', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.shield, color: Colors.blueGrey),
+                title: const Text('Клан'),
+                trailing: Text(clanName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+
+            const Spacer(),
+
+            if (!isMe) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _isFriendRequestSent ? null : _sendFriendRequest,
+                  icon: Icon(_isFriendRequestSent ? Icons.check : Icons.person_add),
+                  label: Text(_isFriendRequestSent ? 'ЗАЯВКА ОТПРАВЛЕНА' : 'ДОБАВИТЬ В ДРУЗЬЯ'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Нападение на города (в разработке)')));
+                  },
+                  icon: const Icon(Icons.gavel, color: Colors.red),
+                  label: const Text('НАПАСТЬ НА ГОРОД', style: TextStyle(color: Colors.red)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

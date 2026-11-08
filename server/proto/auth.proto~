@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "IdleScholar_BD/gen/auth;authpb";
+
+service AuthService {
+  rpc Register (RegisterRequest) returns (AuthResponse);
+  rpc Login (LoginRequest) returns (AuthResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string message = 2;
+  int32 account_id = 3;
+  int32 character_id = 4;
+  string username = 5;
+  string character_name = 6;
+}

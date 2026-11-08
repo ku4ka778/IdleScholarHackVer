@@ -1,0 +1,101 @@
+import 'package:flutter/material.dart';
+import '../gen/character.pbgrpc.dart';
+import '../services/character_client.dart';
+import '../services/session.dart';
+
+class TalentsScreen extends StatefulWidget {
+  const TalentsScreen({super.key});
+
+  @override
+  State<TalentsScreen> createState() => _TalentsScreenState();
+}
+
+class _TalentsScreenState extends State<TalentsScreen> {
+  final _client = CharacterClient();
+  int _points = 0;
+  Map<String, int> _talents = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    setState(() => _loading = true);
+    try {
+      await _client.connect();
+      final resp = await _client.getTalents(charId);
+      if (resp.success) {
+        setState(() {
+          _points = resp.talentPoints;
+          _talents = resp.talents.map((key, value) => MapEntry(key, value.toInt()));
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _upgrade(String id) async {
+    final charId = Session.characterId;
+    if (charId == null) return;
+
+    try {
+      final resp = await _client.upgradeTalent(charId, id);
+      if (resp.success) {
+        _load(); // Обновляем список
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp.message)));
+      }
+    } catch (e) {
+      debugPrint('Upgrade error: $e');
+    }
+  }
+
+  Widget _buildTalentRow(String id, String title, String desc) {
+    final level = _talents[id] ?? 0;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        title: Text('$title [Уровень: $level]'),
+        subtitle: Text(desc),
+        trailing: ElevatedButton(
+          onPressed: (_points > 0 && level < 5) ? () => _upgrade(id) : null,
+          child: const Text('+1'),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Таланты (Очки: $_points)')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Силач: Этап 1', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _buildTalentRow('str_1', 'Повышает лут', 'Позволяет унести больше предметов.'),
+          _buildTalentRow('str_2', 'Уменьшает дебаффы', 'Снижает время штрафа за выход.'),
+          
+          const SizedBox(height: 24),
+          const Text('Ловкач: Этап 1', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _buildTalentRow('dex_1', 'Снижает шанс дебаффа', 'Шанс получить штраф меньше.'),
+          _buildTalentRow('dex_2', 'Снижает штраф', 'Уменьшает сам штраф (до 15%).'),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,177 @@
+package craft
+
+import (
+	"context"
+	"log"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	craftpb "IdleScholar_BD/gen/craft"
+)
+
+type Server struct {
+	craftpb.UnimplementedCraftServiceServer
+	db *pgxpool.Pool
+}
+
+func NewServer(db *pgxpool.Pool) *Server {
+	return &Server{db: db}
+}
+
+func (s *Server) GetRecipes(ctx context.Context, req *craftpb.GetRecipesRequest) (*craftpb.GetRecipesResponse, error) {
+	if req.CharacterId == 0 {
+		return &craftpb.GetRecipesResponse{Success: false, Message: "Character ID required"}, nil
+	}
+
+	var cityID int32
+	err := s.db.QueryRow(ctx, `SELECT id FROM city WHERE character_id = $1`, req.CharacterId).Scan(&cityID)
+	if err != nil {
+		return &craftpb.GetRecipesResponse{Success: false, Message: "City not found"}, nil
+	}
+
+	resourceMap := map[string]int64{}
+	rows, err := s.db.Query(ctx, `SELECT resource_type, amount FROM city_resource WHERE city_id = $1`, cityID)
+	if err == nil {
+		for rows.Next() {
+			var rt string
+			var amt int64
+			if err := rows.Scan(&rt, &amt); err == nil {
+				resourceMap[rt] = amt
+			}
+		}
+		rows.Close()
+	}
+
+	recipeRows, err := s.db.Query(ctx, `
+		SELECT r.id, r.code, r.result_code, i.name, r.result_quantity, i.slot, i.attack, i.defense, i.luck
+		FROM recipe r
+		JOIN item i ON i.code = r.result_code
+		ORDER BY CASE WHEN i.slot = 'material' THEN 0 ELSE 1 END, r.id`)
+	if err != nil {
+		return &craftpb.GetRecipesResponse{Success: false, Message: "DB error"}, nil
+	}
+	defer recipeRows.Close()
+
+	var recipes []*craftpb.Recipe
+	for recipeRows.Next() {
+		r := &craftpb.Recipe{}
+		err := recipeRows.Scan(&r.Id, &r.Code, &r.ResultCode, &r.ResultName, &r.ResultQuantity, &r.ResultSlot, &r.ResultAttack, &r.ResultDefense, &r.ResultLuck)
+		if err != nil {
+			continue
+		}
+
+		ingRows, err := s.db.Query(ctx, `SELECT resource_type, amount FROM recipe_ingredient WHERE recipe_id = $1`, r.Id)
+		canCraft := true
+		if err == nil {
+			for ingRows.Next() {
+				var rt string
+				var amt int32
+				if err := ingRows.Scan(&rt, &amt); err == nil {
+					available := resourceMap[rt]
+					r.Ingredients = append(r.Ingredients, &craftpb.Ingredient{
+						ResourceType: rt,
+						Amount:       amt,
+						Available:    available,
+					})
+					if available < int64(amt) {
+						canCraft = false
+					}
+				}
+			}
+			ingRows.Close()
+		}
+		r.CanCraft = canCraft
+		recipes = append(recipes, r)
+	}
+
+	return &craftpb.GetRecipesResponse{Success: true, Message: "OK", Recipes: recipes}, nil
+}
+
+func (s *Server) CraftItem(ctx context.Context, req *craftpb.CraftItemRequest) (*craftpb.CraftItemResponse, error) {
+	if req.CharacterId == 0 || req.RecipeId == 0 {
+		return &craftpb.CraftItemResponse{Success: false, Message: "Invalid request"}, nil
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "DB error"}, nil
+	}
+	defer tx.Rollback(ctx)
+
+	var cityID int32
+	err = tx.QueryRow(ctx, `SELECT id FROM city WHERE character_id = $1`, req.CharacterId).Scan(&cityID)
+	if err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "City not found"}, nil
+	}
+
+	var resultCode string
+	var resultQuantity int32
+	err = tx.QueryRow(ctx, `SELECT result_code, result_quantity FROM recipe WHERE id = $1`, req.RecipeId).Scan(&resultCode, &resultQuantity)
+	if err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "Recipe not found"}, nil
+	}
+
+	var resultSlot string
+	err = tx.QueryRow(ctx, `SELECT slot FROM item WHERE code = $1`, resultCode).Scan(&resultSlot)
+	if err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "Result item not found"}, nil
+	}
+
+	ingRows, err := tx.Query(ctx, `SELECT resource_type, amount FROM recipe_ingredient WHERE recipe_id = $1`, req.RecipeId)
+	if err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "DB error"}, nil
+	}
+
+	type ing struct {
+		rt  string
+		amt int32
+	}
+	var ingredients []ing
+	for ingRows.Next() {
+		var i ing
+		if err := ingRows.Scan(&i.rt, &i.amt); err == nil {
+			ingredients = append(ingredients, i)
+		}
+	}
+	ingRows.Close()
+
+	for _, i := range ingredients {
+		var available int64
+		err = tx.QueryRow(ctx, `SELECT amount FROM city_resource WHERE city_id = $1 AND resource_type = $2`, cityID, i.rt).Scan(&available)
+		if err != nil || available < int64(i.amt) {
+			return &craftpb.CraftItemResponse{Success: false, Message: "Not enough resources"}, nil
+		}
+	}
+
+	for _, i := range ingredients {
+		_, err = tx.Exec(ctx, `UPDATE city_resource SET amount = amount - $1 WHERE city_id = $2 AND resource_type = $3`, i.amt, cityID, i.rt)
+		if err != nil {
+			return &craftpb.CraftItemResponse{Success: false, Message: "Failed to deduct resources"}, nil
+		}
+	}
+
+	if resultSlot == "material" {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO city_resource (city_id, resource_type, amount) 
+			VALUES ($1, $2, $3) 
+			ON CONFLICT (city_id, resource_type) 
+			DO UPDATE SET amount = city_resource.amount + EXCLUDED.amount`,
+			cityID, resultCode, resultQuantity)
+		if err != nil {
+			return &craftpb.CraftItemResponse{Success: false, Message: "Failed to add material"}, nil
+		}
+	} else {
+		for k := int32(0); k < resultQuantity; k++ {
+			_, err = tx.Exec(ctx, `INSERT INTO character_item (character_id, item_code) VALUES ($1, $2)`, req.CharacterId, resultCode)
+			if err != nil {
+				return &craftpb.CraftItemResponse{Success: false, Message: "Failed to add item"}, nil
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return &craftpb.CraftItemResponse{Success: false, Message: "Commit failed"}, nil
+	}
+
+	log.Printf("Crafted %d x %s for character %d", resultQuantity, resultCode, req.CharacterId)
+	return &craftpb.CraftItemResponse{Success: true, Message: "OK"}, nil
+}

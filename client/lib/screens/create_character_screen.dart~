@@ -1,0 +1,333 @@
+import 'package:flutter/material.dart';
+
+class CharacterSelectScreen extends StatefulWidget {
+  const CharacterSelectScreen({super.key});
+
+  @override
+  State<CharacterSelectScreen> createState() => _CharacterSelectScreenState();
+}
+
+class _CharacterSelectScreenState extends State<CharacterSelectScreen> {
+  int _selectedIndex = 0;
+
+  // Данные о 4 классах
+ final List<Map<String, dynamic>> _classes = [
+    {
+      'name': 'Рыцарь',
+      'desc': 'Стойкий воин, обладающий высокой выживаемостью и тяжелой броней.',
+      'color': const Color(0xFF8B0000), 
+      'stats': {'Сила': 10, 'Ловкость': 3, 'Интеллект': 7, 'Броня': 10, 'Хп': 275, 'Мана': 83},
+      'image': 'assets/images/putin.jpg',
+    },
+    {
+      'name': 'Маг',
+      'desc': 'Хрупкий, но обладающий огромным запасом маны для разрушительных заклинаний.',
+      'color': const Color(0xFF2E8B57), 
+      'stats': {'Сила': 3, 'Ловкость': 3, 'Интеллект': 10, 'Броня': 1, 'Хп': 85, 'Мана': 120},
+      'image': 'assets/images/milyaev.jpg',
+    },
+    {
+      'name': 'Бард',
+      'desc': 'Универсальный класс, сочетающий в себе поддержку союзников и средний урон.',
+      'color': const Color(0xFF483D8B), 
+      'stats': {'Сила': 6, 'Ловкость': 5, 'Интеллект': 4, 'Броня': 6, 'Хп': 195, 'Мана': 120},
+      'image': 'assets/images/sobyanin.jpg',
+    },
+    {
+      'name': 'Алхимик',
+      'desc': 'Мастер зелий и взрывчатых веществ. Высокий запас маны и неплохая сила.',
+      'color': const Color(0xFFDAA520), 
+      'stats': {'Сила': 7, 'Ловкость': 3, 'Интеллект': 5, 'Броня': 6, 'Хп': 200, 'Мана': 140},
+      'image': 'assets/images/medved.jpg',
+    },
+  ];
+
+  final Color bgDark = const Color(0xFF0D0D0D);      // Почти черный
+  final Color panelDark = const Color(0xFF1A1A1A);   // Темная панель
+  final Color textGold = const Color(0xFFC5A059);    // Золотой текст
+  final Color borderGold = const Color(0xFF4A3C31);  // Бронзовая рамка
+
+  @override
+  Widget build(BuildContext context) {
+    final currentHero = _classes[_selectedIndex];
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      backgroundColor: bgDark,
+      body: Stack(
+        children: [
+          // Задний фон
+          Positioned.fill(
+  child: Container(
+    color: bgDark,
+    // child: Image.asset('assets/backgrounds/textura1.png', fit: BoxFit.cover, opacity: 0,3), // если придумаем текстуру
+  ),
+),
+
+          Row(
+            children: [
+              // 4 героя (слева часть)
+              Expanded(
+                flex: 6,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 40, top: 80, bottom: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(_classes.length, (index) {
+                      return _buildHeroCard(index, screenWidth);
+                    }),
+                  ),
+                ),
+              ),
+
+              // статы (правая часть)
+              Expanded(
+                flex: 4,
+                child: Container(
+                  margin: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: panelDark.withOpacity(0.9),
+                    border: Border.all(color: borderGold, width: 2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.8), blurRadius: 20, spreadRadius: 5),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // назв классов
+                      Text(
+                        currentHero['name'],
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: currentHero['color'], // Цвет класса
+                          letterSpacing: 4,
+                          height: 1.0,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      Divider(color: borderGold, thickness: 2),
+                      const SizedBox(height: 20),
+
+                      // описание
+                      Text(
+                        currentHero['desc'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                          height: 1.5,
+                        ),
+                      ),
+
+                      const Spacer(), // Прижимаем статы к низу
+
+                      // характеристики
+                      Text(
+                        'ХАРАКТЕРИСТИКИ',
+                        style: TextStyle(fontSize: 14, color: textGold, letterSpacing: 2),
+                      ),
+                      const SizedBox(height: 10),
+                      ..._buildStats(currentHero['stats']),
+
+                      const SizedBox(height: 40),
+
+                      // выбрать
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            side: BorderSide(color: currentHero['color'], width: 2),
+                            shape: const BeveledRectangleBorder(),
+                          ),
+                          onPressed: () {
+                            // при нажатии напишет когда переход сделаем (вроде должно работать)
+                            debugPrint('Выбран класс: ${currentHero['name']}');
+                          },
+                          child: Text(
+                            'ВЫБРАТЬ',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: currentHero['color'],
+                              letterSpacing: 4,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // НАЗАД
+          Positioned(
+            top: 20,
+            left: 20,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white54),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // карточки
+  Widget _buildHeroCard(int index, double screenWidth) {
+    final isSelected = _selectedIndex == index;
+    final hero = _classes[index];
+    
+    // анимация карточки
+    final double cardHeight = isSelected ? 500 : 400;
+    final double cardWidth = isSelected ? 200 : 160;
+    final double opacity = isSelected ? 1.0 : 0.4;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        width: cardWidth,
+        height: cardHeight,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? hero['color'] : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: hero['color'].withOpacity(0.3), blurRadius: 30, spreadRadius: 5)
+          ] : [],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // фото героя
+            Opacity(
+              opacity: opacity,
+              child: Image.asset(
+                hero['image'],
+                fit: BoxFit.cover,
+              ),
+            ),
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              height: 100,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      bgDark.withOpacity(0.9),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Text(
+                hero['name'],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isSelected ? 24 : 18,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : Colors.white54,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // полоски статов
+
+  List<Widget> _buildStats(Map<String, dynamic> stats) {
+    // Атрибуты
+    final List<String> attributes = ['Сила', 'Ловкость', 'Интеллект', 'Броня'];
+    // Ресы
+    final List<String> resources = ['Хп', 'Мана'];
+
+    return [
+      // 1. Рисуем атрибуты (эй ай генератед)
+      ...attributes.map((attr) {
+        final value = stats[attr] ?? 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(attr, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text('$value', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              LinearProgressIndicator(
+                value: value / 10.0, // Делим на 10, так как максимум 10
+                backgroundColor: Colors.black45,
+                color: _classes[_selectedIndex]['color'],
+                minHeight: 6,
+              ),
+            ],
+          ),
+        );
+      }),
+
+      const SizedBox(height: 10),
+      Divider(color: borderGold, thickness: 1),
+      const SizedBox(height: 10),
+
+      // 2. Рисуем ресурсы (эй ай генератед)
+      ...resources.map((res) {
+        final value = stats[res] ?? 0;
+        final isHp = res == 'Хп';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Icon(
+                isHp ? Icons.favorite : Icons.water_drop, 
+                color: isHp ? Colors.redAccent : Colors.blueAccent, 
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(res, style: const TextStyle(color: Colors.grey, fontSize: 16)),
+              const Spacer(),
+              Text(
+                '$value', 
+                style: TextStyle(
+                  color: isHp ? Colors.redAccent : Colors.blueAccent, 
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    ];
+  }
+}

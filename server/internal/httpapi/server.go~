@@ -1,0 +1,117 @@
+package httpapi
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	characterpb "IdleScholar_BD/gen/character"
+	characterserver "IdleScholar_BD/internal/character"
+)
+
+type HTTPServer struct {
+	db          *pgxpool.Pool
+	charService *characterserver.CharacterServer
+}
+
+func NewHTTPServer(db *pgxpool.Pool) *HTTPServer {
+	return &HTTPServer{
+		db:          db,
+		charService: characterserver.NewServer(db),
+	}
+}
+
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+func (s *HTTPServer) Start(addr string) error {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/login", s.corsWrapper(s.handleLogin))
+	mux.HandleFunc("/api/get_character", s.corsWrapper(s.handleGetCharacter))
+
+	log.Printf("HTTP server running on %s", addr)
+	return http.ListenAndServe(addr, mux)
+}
+
+func (s *HTTPServer) corsWrapper(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(&w)
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next(w, r)
+	}
+}
+
+func (s *HTTPServer) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var accountID int32
+	var charID int32
+	var charName string
+	err := s.db.QueryRow(r.Context(), 
+		`SELECT a.id, c.id, c.name FROM account a 
+		 LEFT JOIN "character" c ON c.account_id = a.id 
+		 WHERE a.username = $1`, req.Username).Scan(&accountID, &charID, &charName)
+	
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid login"})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":      true,
+		"account_id":   accountID,
+		"character_id": charID,
+		"character_name": charName,
+	})
+}
+
+func (s *HTTPServer) handleGetCharacter(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing id", http.StatusBadRequest)
+		return
+	}
+
+	var charID int32
+	fmt.Sscanf(idStr, "%d", &charID)
+
+	resp, err := s.charService.GetCharacterById(r.Context(), &characterpb.CharacterRequest{Id: charID})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":      true,
+		"id":           resp.Id,
+		"name":         resp.Name,
+		"level":        resp.Level,
+		"experience":   resp.Experience,
+		"gold":         resp.Gold,
+		"strength":     resp.Strength,
+		"dexterity":    resp.Dexterity,
+		"intelligence": resp.Intelligence,
+		"luck":         resp.Luck,
+		"talentpoint":  resp.Talentpoint,
+	})
+}

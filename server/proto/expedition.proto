@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package expedition;
+
+option go_package = "IdleScholar_BD/gen/expedition;expeditionpb";
+
+service ExpeditionService {
+  rpc StartExpedition (StartExpeditionRequest) returns (StartExpeditionResponse);
+  rpc GetExpeditionStatus (GetExpeditionStatusRequest) returns (GetExpeditionStatusResponse);
+  rpc StopExpedition (StopExpeditionRequest) returns (StopExpeditionResponse);
+  rpc SendHeartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+  rpc FinishExpedition (FinishExpeditionRequest) returns (FinishExpeditionResponse);
+	rpc PauseExpedition (PauseExpeditionRequest) returns (PauseExpeditionResponse);
+  rpc ResumeExpedition (ResumeExpeditionRequest) returns (ResumeExpeditionResponse);
+}
+
+message StartExpeditionRequest {
+  int32 character_id = 1;
+  int32 duration_minutes = 2;
+  int32 activity_type = 3;
+  int32 activity_level = 4;
+  repeated string allowed_domains = 5;
+  repeated string allowed_apps = 6;
+}
+
+message StartExpeditionResponse {
+  bool success = 1;
+  string message = 2;
+  int64 expedition_end_unix = 3;
+	int32 total_gold_bonus_pct = 4;
+  int32 total_luck_bonus_pct = 5;
+  int32 penalty_reduction_pct = 6;
+	int32 str_bonus_atk = 7;  
+  int32 dex_cycle_reduction = 8;
+  int32 int_exp_bonus_pct = 9; 
+}
+
+message GetExpeditionStatusRequest {
+  int32 character_id = 1;
+}
+
+message GetExpeditionStatusResponse {
+  bool success = 1;
+  bool is_active = 2;
+  int64 remaining_seconds = 3;
+  int32 activity_type = 4;
+  int32 activity_level = 5;
+  bool just_finished = 6;      
+  int64 gold_gained = 7;          
+  int64 exp_gained = 8;           
+  repeated string items_gained = 9;
+  int32 penalty_stacks = 10;
+  int32 penalty_expires = 11;
+}
+
+message StopExpeditionRequest {
+  int32 character_id = 1;
+}
+
+message StopExpeditionResponse {
+  bool success = 1;
+  string message = 2;
+  bool penalty_applied = 3;
+}
+
+message HeartbeatRequest {
+  int32 character_id = 1;
+}
+
+message HeartbeatResponse {
+  bool success = 1;
+  bool is_active = 2;
+  string message = 3;
+  int64 gold_gained = 4;
+  int64 exp_gained = 5;
+  repeated string items_gained = 6;
+	int32 new_level = 7;
+}
+
+message FinishExpeditionRequest {
+  int32 character_id = 1;
+}
+
+message FinishExpeditionResponse {
+  bool success = 1;
+  string message = 2;
+  int64 gold_gained = 3;
+  int64 exp_gained = 4;
+  repeated string items_gained = 5;
+	int32 new_level = 6;
+  bool echo_triggered = 7;
+  bool echo_defeated = 8;
+  int64 echo_gold_lost = 9;
+  int64 echo_exp_lost = 10;
+	bool raid_triggered = 11;
+  int64 raid_resources_lost = 12;
+	bool blizzard_triggered = 13;
+  int64 blizzard_gold_lost = 14;
+  int64 blizzard_resource_lost = 15;
+  bool resonance_triggered = 16;
+  bool resonance_positive = 17;
+}
+
+message PauseExpeditionRequest {
+  int32 character_id = 1;
+}
+
+message PauseExpeditionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResumeExpeditionRequest {
+  int32 character_id = 1;
+}
+
+message ResumeExpeditionResponse {
+  bool success = 1;
+  string message = 2;
+  int64 remaining_seconds = 3;
+}

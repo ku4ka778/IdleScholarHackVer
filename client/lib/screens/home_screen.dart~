@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'profile_screen.dart';
+import 'character_screen.dart';
+import 'talents_screen.dart';
+import 'auth_screen.dart'; // Для кнопки выхода
+import '../services/session.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  Widget _buildMenuButton(BuildContext context, String title, Widget targetScreen, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: SizedBox(
+        width: double.infinity,
+        height: 60,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color ?? Colors.brown[400],
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => targetScreen));
+          },
+          child: Text(title, style: const TextStyle(fontSize: 18, color: Colors.white)),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Дом'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthScreen()),
+                (route) => false,
+              );
+            },
+          )
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Привет, ${Session.characterName ?? "Путник"}!',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            _buildMenuButton(context, 'ПРОФИЛЬ И СТАТЫ', const ProfileScreen()),
+            _buildMenuButton(context, 'ИНВЕНТАРЬ И ЭКИПИРОВКА', const CharacterScreen()),
+            _buildMenuButton(context, 'ДРЕВО НАВЫКОВ', const TalentsScreen(), color: Colors.indigo),
+          ],
+        ),
+      ),
+    );
+  }
+}

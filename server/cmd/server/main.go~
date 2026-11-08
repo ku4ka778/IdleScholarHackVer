@@ -1,0 +1,75 @@
+package main
+
+import (
+	"context"
+	"log"
+	"net"
+	"os"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
+
+	characterpb "IdleScholar_BD/gen/character"
+	citypb "IdleScholar_BD/gen/city"
+	craftpb "IdleScholar_BD/gen/craft"
+	equipmentpb "IdleScholar_BD/gen/equipment"
+	expeditionpb "IdleScholar_BD/gen/expedition"
+
+	characterserver "IdleScholar_BD/internal/character"
+	cityserver "IdleScholar_BD/internal/city"
+	craftserver "IdleScholar_BD/internal/craft"
+	equipmentserver "IdleScholar_BD/internal/equipment"
+	expeditionserver "IdleScholar_BD/internal/expedition"
+)
+
+func main() {
+	ctx := context.Background()
+
+	dbUser := getEnv("DB_USER", "postgres")
+	dbPass := getEnv("DB_PASS", "U29%/W@M%pF5eqv9.t\\vr6L>dIY^:b")
+	dbHost := getEnv("DB_HOST", "95.31.41.147")
+	dbPort := getEnv("DB_PORT", "65432")
+	dbName := getEnv("DB_NAME", "idlescholar")
+
+	dsn := "postgres://" + dbUser + ":" + dbPass + "@" + dbHost + ":" + dbPort + "/" + dbName
+
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		log.Fatalf("DB config error: %v", err)
+	}
+	config.MaxConns = 20
+
+	dbPool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		log.Fatalf("DB connection pool error: %v", err)
+	}
+	defer dbPool.Close()
+	log.Println("Connected to PostgreSQL")
+
+	listener, err := net.Listen("tcp", "0.0.0.0:50051")
+	if err != nil {
+		log.Fatalf("Listen error: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+
+	characterpb.RegisterCharacterServiceServer(grpcServer, characterserver.NewCharacterServer(dbPool))
+	citypb.RegisterCityServiceServer(grpcServer, cityserver.NewCityServer(dbPool))
+	craftpb.RegisterCraftServiceServer(grpcServer, craftserver.NewCraftServer(dbPool))
+	equipmentpb.RegisterEquipmentServiceServer(grpcServer, equipmentserver.NewEquipmentServer(dbPool))
+	
+	expeditionSrv := expeditionserver.NewServer(dbPool)
+	expeditionpb.RegisterExpeditionServiceServer(grpcServer, expeditionSrv)
+
+	log.Println("Go gRPC server running on port :50051")
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Serve error: %v", err)
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
+}

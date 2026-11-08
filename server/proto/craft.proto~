@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package craft;
+
+option go_package = "IdleScholar_BD/gen/craft;craftpb";
+
+service CraftService {
+  rpc GetRecipes (GetRecipesRequest) returns (GetRecipesResponse);
+  rpc CraftItem (CraftItemRequest) returns (CraftItemResponse);
+}
+
+message GetRecipesRequest {
+  int32 character_id = 1;
+}
+
+message GetRecipesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Recipe recipes = 3;
+}
+
+message Recipe {
+  int32 id = 1;
+  string code = 2;
+  string result_code = 3;
+  string result_name = 4;
+  int32 result_quantity = 5;
+  repeated Ingredient ingredients = 6;
+  bool can_craft = 7;
+  string result_slot = 8;
+  int32 result_attack = 9;
+  int32 result_defense = 10;
+  int32 result_luck = 11;
+}
+
+message Ingredient {
+  string resource_type = 1;
+  int32 amount = 2;
+  int64 available = 3;
+}
+
+message CraftItemRequest {
+  int32 character_id = 1;
+  int32 recipe_id = 2;
+}
+
+message CraftItemResponse {
+  bool success = 1;
+  string message = 2;
+}

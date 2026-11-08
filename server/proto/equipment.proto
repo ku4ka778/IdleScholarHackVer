@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package equipment;
+
+option go_package = "IdleScholar_BD/gen/equipment;equipmentpb";
+
+service EquipmentService {
+  rpc GetEquipment (GetEquipmentRequest) returns (GetEquipmentResponse);
+  rpc Equip (EquipRequest) returns (EquipResponse);
+  rpc Unequip (UnequipRequest) returns (UnequipResponse);
+}
+
+message GetEquipmentRequest {
+  int32 character_id = 1;
+}
+
+message GetEquipmentResponse {
+  bool success = 1;
+  string message = 2;
+  repeated EquipmentItem items = 3;
+  int32 total_attack = 4;
+  int32 total_defense = 5;
+  int32 total_luck = 6;
+}
+
+message EquipmentItem {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  string slot = 4;
+  int32 attack = 5;
+  int32 defense = 6;
+  int32 luck = 7;
+  bool equipped = 8;
+}
+
+message EquipRequest {
+  int32 character_id = 1;
+  int32 item_id = 2;
+}
+
+message EquipResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UnequipRequest {
+  int32 character_id = 1;
+  int32 item_id = 2;
+}
+
+message UnequipResponse {
+  bool success = 1;
+  string message = 2;
+}

@@ -1,0 +1,143 @@
+package game
+
+import (
+	"math"
+	"math/rand"
+)
+
+func CalculateNewLevel(currentLevel int, currentExp int64) (int, int64, int) {
+	levelsGained := 0
+	for {
+		required := GetExpForNextLevel(currentLevel)
+		if currentExp < required {
+			break
+		}
+		currentExp -= required
+		currentLevel++
+		levelsGained++
+	}
+	return currentLevel, currentExp, levelsGained
+}
+
+func GetExpForNextLevel(currentLevel int) int64 {
+	return int64(currentLevel) * 300
+}
+
+func ComputePenalty(stacks, expires int, defense int) float64 {
+	if expires <= 0 || stacks <= 0 {
+		return 0.0
+	}
+	base := 0.2 * float64(stacks)
+	if base > 0.8 {
+		base = 0.8
+	}
+	return base * (1 - float64(defense)/float64(defense+100))
+}
+
+func ComputeGoldPerCycle(cycle int, activityLevel int, playerLevel int, playerAttack int, penalty float64) int {
+	base := 9.0
+	if activityLevel > 0 { 
+		base = 2.0
+	}
+	
+	locationMult := 1.0 + float64(activityLevel)*0.5
+	levelMult := 1.0 + float64(playerLevel)*0.1
+	cycleMult := 1.0 + math.Sqrt(float64(cycle))*0.05
+	
+	attackBonus := 1.0 + (math.Sqrt(float64(playerAttack)) * 0.02)
+
+	gold := base * locationMult * levelMult * cycleMult * attackBonus
+	gold = gold * (1.0 - penalty)
+	
+	return int(gold)
+}
+
+func ComputeExpPerCycle(gold int, intExpBonusPct int64) int64 {
+	baseExp := int64(gold) * 3 / 2
+	return baseExp + (baseExp * intExpBonusPct / 100)
+}
+
+type LootEntry struct {
+	ItemCode string
+	Chance   float64
+	MinQty   int
+	MaxQty   int
+	ClassReq string
+}
+
+type DroppedItem struct {
+	ItemCode string
+	Quantity int
+}
+
+var LootTable = map[int][]LootEntry{
+	1: {
+		{"wood", 1.0, 1, 2, ""},
+		{"stone", 0.3, 1, 2, ""},
+		{"leather", 0.2, 1, 2, ""},
+		{"herbs", 0.15, 1, 3, ""},
+		{"coal", 0.1, 1, 1, ""},
+		{"fiber", 0.4, 1, 3, ""},
+		{"clay", 0.2, 1, 2, ""},
+		{"resin", 0.15, 1, 2, ""},
+		{"bone", 0.15, 1, 2, ""},
+		{"feather", 0.1, 1, 3, ""},
+		{"flint", 0.1, 1, 1, ""},
+
+		{"rusty_sword", 0.1, 1, 1, "warrior"},
+		{"wooden_staff", 0.1, 1, 1, "mage"},
+		{"lute", 0.1, 1, 1, "bard"},
+		{"vial", 0.1, 1, 1, "alchemist"},
+
+		{"leather_vest", 0.08, 1, 1, ""},
+		{"wooden_shield", 0.06, 1, 1, ""},
+		{"leather_helmet", 0.05, 1, 1, ""},
+		{"cloth_robe", 0.05, 1, 1, ""},
+
+		{"bone_ring", 0.05, 1, 1, ""},
+		{"wooden_amulet", 0.05, 1, 1, ""},
+
+		{"iron_dagger", 0.04, 1, 1, "warrior"},
+		{"iron_dagger", 0.04, 1, 1, "bard"},
+		{"apprentice_wand", 0.04, 1, 1, "mage"},
+		{"apprentice_wand", 0.04, 1, 1, "alchemist"},
+
+		{"war_horn", 0.04, 1, 1, "warrior"},
+		{"crystal_shard", 0.04, 1, 1, "mage"},
+		{"flute", 0.04, 1, 1, "bard"},
+		{"herb_pouch", 0.04, 1, 1, "alchemist"},
+
+		{"health_potion", 0.03, 1, 1, ""},
+	},
+}
+
+func RollLoot(locationIndex int, playerClass string, playerLuck int) []DroppedItem {
+	table, ok := LootTable[locationIndex]
+	if !ok {
+		table = LootTable[1]
+	}
+
+	var items []DroppedItem
+	luckBonus := 1.0 + (math.Sqrt(float64(playerLuck)) * 0.02)
+
+	for _, entry := range table {
+		if entry.ClassReq != "" && entry.ClassReq != playerClass {
+			continue
+		}
+
+		actualChance := entry.Chance * luckBonus
+		if actualChance > 1.0 {
+			actualChance = 1.0
+		}
+
+		if rand.Float64() < actualChance {
+			qty := rand.Intn(entry.MaxQty-entry.MinQty+1) + entry.MinQty
+			items = append(items, DroppedItem{
+				ItemCode: entry.ItemCode,
+				Quantity: qty,
+			})
+		}
+	}
+
+	return items
+}

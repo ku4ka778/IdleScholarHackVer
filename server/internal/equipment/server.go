@@ -1,0 +1,114 @@
+package equipment
+
+import (
+	"context"
+	
+	"github.com/jackc/pgx/v5/pgxpool"
+	equipmentpb "IdleScholar_BD/gen/equipment"
+)
+
+type Server struct {
+	equipmentpb.UnimplementedEquipmentServiceServer
+	db *pgxpool.Pool
+}
+
+func NewServer(db *pgxpool.Pool) *Server {
+	return &Server{db: db}
+}
+
+func (s *Server) GetEquipment(ctx context.Context, req *equipmentpb.GetEquipmentRequest) (*equipmentpb.GetEquipmentResponse, error) {
+	if req.CharacterId == 0 {
+		return &equipmentpb.GetEquipmentResponse{Success: false, Message: "Invalid request"}, nil
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT ci.id, ci.item_code, i.name, i.slot, i.attack, i.defense, i.luck, ci.equipped
+		FROM character_item ci
+		JOIN item i ON i.code = ci.item_code
+		WHERE ci.character_id = $1
+		ORDER BY i.slot, i.attack DESC`, req.CharacterId)
+	if err != nil {
+		return &equipmentpb.GetEquipmentResponse{Success: false, Message: "DB error"}, nil
+	}
+	defer rows.Close()
+
+	var items []*equipmentpb.EquipmentItem
+	var totalAtk, totalDef, totalLuck int32
+
+	for rows.Next() {
+		item := &equipmentpb.EquipmentItem{}
+		err := rows.Scan(&item.Id, &item.Code, &item.Name, &item.Slot, &item.Attack, &item.Defense, &item.Luck, &item.Equipped)
+		if err == nil {
+			items = append(items, item)
+			if item.Equipped {
+				totalAtk += item.Attack
+				totalDef += item.Defense
+				totalLuck += item.Luck
+			}
+		}
+	}
+
+	return &equipmentpb.GetEquipmentResponse{
+		Success:      true,
+		Message:      "OK",
+		Items:        items,
+		TotalAttack:  totalAtk,
+		TotalDefense: totalDef,
+		TotalLuck:    totalLuck,
+	}, nil
+}
+
+func (s *Server) Equip(ctx context.Context, req *equipmentpb.EquipRequest) (*equipmentpb.EquipResponse, error) {
+	if req.CharacterId == 0 || req.ItemId == 0 {
+		return &equipmentpb.EquipResponse{Success: false, Message: "Invalid request"}, nil
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return &equipmentpb.EquipResponse{Success: false, Message: "DB error"}, nil
+	}
+	defer tx.Rollback(ctx)
+
+	var slot string
+	err = tx.QueryRow(ctx, `
+		SELECT i.slot FROM character_item ci
+		JOIN item i ON i.code = ci.item_code
+		WHERE ci.id = $1 AND ci.character_id = $2`, req.ItemId, req.CharacterId).Scan(&slot)
+	if err != nil {
+		return &equipmentpb.EquipResponse{Success: false, Message: "Item not found"}, nil
+	}
+
+	_, err = tx.Exec(ctx, `
+		UPDATE character_item SET equipped = false
+		WHERE character_id = $1 AND equipped = true 
+		AND item_code IN (SELECT code FROM item WHERE slot = $2)`, req.CharacterId, slot)
+	if err != nil {
+		return &equipmentpb.EquipResponse{Success: false, Message: "Failed to unequip old item"}, nil
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE character_item SET equipped = true WHERE id = $1`, req.ItemId)
+	if err != nil {
+		return &equipmentpb.EquipResponse{Success: false, Message: "Failed to equip item"}, nil
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return &equipmentpb.EquipResponse{Success: false, Message: "Commit failed"}, nil
+	}
+
+	return &equipmentpb.EquipResponse{Success: true, Message: "Equipped"}, nil
+}
+
+func (s *Server) Unequip(ctx context.Context, req *equipmentpb.UnequipRequest) (*equipmentpb.UnequipResponse, error) {
+	if req.CharacterId == 0 || req.ItemId == 0 {
+		return &equipmentpb.UnequipResponse{Success: false, Message: "Invalid request"}, nil
+	}
+
+	_, err := s.db.Exec(ctx, `
+		UPDATE character_item SET equipped = false
+		WHERE id = $1 AND character_id = $2`, req.ItemId, req.CharacterId)
+	if err != nil {
+		return &equipmentpb.UnequipResponse{Success: false, Message: "DB error"}, nil
+	}
+
+	return &equipmentpb.UnequipResponse{Success: true, Message: "Unequipped"}, nil
+}
