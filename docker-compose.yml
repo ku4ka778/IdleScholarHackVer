@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:17-alpine
@@ -12,12 +10,12 @@ services:
     volumes:
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgdata:/var/lib/postgresql/data
-	test: ["CMD-SHELL", "pg_isready -U postgres -d idlescholar"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d idlescholar"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
-
 
   server:
     build:
@@ -34,8 +32,8 @@ services:
       - "50051:50051"
     depends_on:
       db:
-	    condition: service_healthy
-	restart: on-failure 
+        condition: service_healthy
+    restart: on-failure
 
   client:
     build:
@@ -45,6 +43,7 @@ services:
       - "80:80"
     depends_on:
       - server
+    restart: on-failure
 
 volumes:
   pgdata:
