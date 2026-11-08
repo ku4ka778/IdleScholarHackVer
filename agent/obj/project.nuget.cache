@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "JnYlSrZObqY=",
+  "success": true,
+  "projectFilePath": "c:\\Users\\unki\\IdleScholar\\agent\\Agent.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\unki\\.nuget\\packages\\dnsclient\\1.8.0\\dnsclient.1.8.0.nupkg.sha512",
+    "C:\\Users\\unki\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.32\\microsoft.netcore.app.runtime.win-x64.8.0.32.nupkg.sha512",
+    "C:\\Users\\unki\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.32\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.32.nupkg.sha512",
+    "C:\\Users\\unki\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.32\\microsoft.aspnetcore.app.runtime.win-x64.8.0.32.nupkg.sha512"
+  ],
+  "logs": []
+}
