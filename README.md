@@ -30,22 +30,22 @@ Desktop Agent(Windows only): C# (.NET 8). Реальная блокировка 
 
 # Скриншоты из игры
 
-### World Map
+### Карта мира
 Окно карты с выбором локации или города
 
 ![World Map](screenshots/map.png)
 
-### Expeditions
+### Экспедиции
 Окно вылазки, в котором пишется время до конца, а также награда за каждую пройденную минуту
 
 ![Expedition](screenshots/expedition.png)
 
-### Forge
+### Кузня
 Возможность крафтов и переработки ресурсов и экипировки
 
 ![Forge](screenshots/forge.png)
 
-### Character Profile
+### Профиль
 Окно статистики персонажа
 
 ![Profile](screenshots/profile.png)
