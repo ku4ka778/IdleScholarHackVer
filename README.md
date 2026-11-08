@@ -30,6 +30,7 @@ Desktop Agent(Windows only): C# (.NET 8). Реальная блокировка 
 
 # Структура проекта
 
+```text
 IdleScholarHackVer/
 |
 |-- agent/              # Desktop агент (C# / .NET 8)
@@ -46,6 +47,7 @@ IdleScholarHackVer/
 |-- docker-compose.yml
 |
 |-- README.md
+```
 
 # Скриншоты из игры
 
