@@ -40,7 +40,7 @@ IdleScholarHackVer/
 |-- database/           # База данных
 |
 |-- server/             # Go сервер
-|   |-- go.mod
+|
 |
 |-- Dockerfile
 |-- Dockerfile.client
