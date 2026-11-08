@@ -28,6 +28,25 @@ Desktop Agent(Windows only): C# (.NET 8). Реальная блокировка 
 
 Зависимости Golang описаны в server/go.mod, Flutter -- в client/pubspec.yaml т.к Python в итоге не используется
 
+# Структура проекта
+
+IdleScholarHackVer/
+|
+|-- agent/              # Desktop агент (C# / .NET 8)
+|
+|-- client/             # Flutter клиент
+|
+|-- database/           # База данных
+|
+|-- server/             # Go сервер
+|   |-- go.mod
+|
+|-- Dockerfile
+|-- Dockerfile.client
+|-- docker-compose.yml
+|
+|-- README.md
+
 # Скриншоты из игры
 
 ### Карта мира
