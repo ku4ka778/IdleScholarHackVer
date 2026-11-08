@@ -9,7 +9,7 @@
 # Запуск
 
 1. git clone https://github.com/ku4ka778/IdleScholarHackVer.git
-2. cd IdleScholarHackVer
+2. cd /IdleScholarHackVer
 3. docker-compose up --build -d
 4. Открыть в любом браузере http://localhost
 
